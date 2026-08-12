@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Lucky Coin</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+
+background:linear-gradient(#7ec8ff,#d8f3ff);
+min-height:100vh;
+overflow:hidden;
+
+}
+
+body:before{
+content:"";
+position:fixed;
+bottom:0;
+left:0;
+width:100%;
+height:120px;
+background:linear-gradient(#47b347,#2f8f2f);
+}
+
+h1{
+
+text-align:center;
+padding:20px;
+color:white;
+font-size:42px;
+text-shadow:3px 3px #2b5d00;
+
+}
+
+.board{
+
+width:900px;
+margin:auto;
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:18px;
+
+}
+
+.card{
+
+height:120px;
+perspective:1000px;
+cursor:pointer;
+
+}
+
+.inner{
+
+width:100%;
+height:100%;
+position:relative;
+transition:.6s;
+transform-style:preserve-3d;
+
+}
+
+.card.open .inner{
+
+transform:rotateY(180deg);
+
+}
+
+.front,.back{
+
+position:absolute;
+width:100%;
+height:100%;
+border-radius:18px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+backface-visibility:hidden;
+border:4px solid #fff;
+box-shadow:0 8px rgba(0,0,0,.25);
+
+}
+
+.front{
+
+background:linear-gradient(#ffeb66,#f7b500);
+font-size:48px;
+color:#c0392b;
+
+}
+
+.back{
+
+transform:rotateY(180deg);
+background:white;
+font-size:32px;
+
+}
+
+.coin{
+color:#f39c12;
+}
+
+.bomb{
+
+background:#ff5252;
+color:white;
+
+}
+
+.star{
+
+background:#4cafef;
+color:white;
+
+}
+
+.footer{
+
+position:fixed;
+bottom:20px;
+width:100%;
+text-align:center;
+font-size:22px;
+font-weight:bold;
+color:white;
+text-shadow:2px 2px black;
+
+}
+
+#totalCoins{
+    position:absolute;
+    top:20px;
+    right:30px;
+    padding:12px 25px;
+    background:white;
+    border:4px solid #f7b500;
+    border-radius:20px;
+    font-size:28px;
+    font-weight:bold;
+    color:#d68910;
+    box-shadow:0 5px 12px rgba(0,0,0,.25);
+    z-index:10;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>🍄 LUCKY COIN 🍄</h1>
+
+<div class="board" id="board"></div>
+
+<div id="totalCoins">
+    🪙 Tổng xu: <span id="coinTotal">0</span>
+</div>
+
+<div class="footer">
+Chọn 5 ô để nhận thưởng (1 ngôi sao x2 điểm đã có hoặc thêm 1 lượt. 5 Bom 0đ)!
+</div>
+
+<script>
+
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playFlipSound(){
+    if(audioCtx.state === "suspended"){
+        audioCtx.resume();
+    }
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(
+        900,
+        audioCtx.currentTime + 0.08
+    );
+
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioCtx.currentTime + 0.12
+    );
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.12);
+}
+
+//========================
+// CHỈ CẦN EDIT MẢNG NÀY
+//========================
+
+const rewards=[
+
+1000,
+2000,
+5000,
+2000,
+"BOMB",
+
+2000,
+"BOMB",
+1000,
+"STAR",
+2000,
+
+5000,
+"BOMB",
+2000,
+1000,
+2000,
+
+"BOMB",
+1000,
+1000,
+"BOMB",
+2000
+
+];
+
+//========================
+
+const board=document.getElementById("board");
+
+let totalCoins = 0;
+const coinTotal = document.getElementById("coinTotal");
+
+
+const shuffledRewards=[...rewards].sort(()=>Math.random()-0.5);
+
+shuffledRewards.forEach((value,index)=>{
+
+let card=document.createElement("div");
+card.className="card";
+
+card.innerHTML=`
+
+<div class="inner">
+
+<div class="front">
+${index+1}
+</div>
+
+<div class="back">
+
+${value=="BOMB"
+?'<div class="bomb">💣</div>'
+:value=="STAR"
+?'<div class="star">⭐ x2</div>'
+:'<div class="coin">🪙<br>'+value+'</div>'}
+
+</div>
+
+</div>
+
+`;
+
+card.onclick=function(){
+
+    if(card.classList.contains("open")) return;
+
+    playFlipSound();
+
+    // Nếu là xu → cộng vào tổng
+    if(typeof value === "number"){
+        totalCoins += value;
+    }
+
+    // Nếu là STAR x2 → nhân đôi tổng xu hiện tại
+    if(value === "STAR" && totalCoins > 0){
+        totalCoins *= 2;
+    }
+
+    // Cập nhật số xu trên màn hình
+    coinTotal.textContent = totalCoins.toLocaleString();
+
+    card.classList.add("open");
+
+}
+
+board.appendChild(card);
+
+});
+
+</script>
+
+</body>
+</html>
